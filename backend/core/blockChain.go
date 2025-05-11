@@ -3,53 +3,85 @@ package core
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
+	"strings"
 	"time"
 )
 
-type BlockChain struct {
-	Chain               []Block       // 区块链
-	CurrentTransactions []Transaction // 当前交易池
+const MINING_DIFFICULTY = 4
+
+type Blockchain struct {
+	Chain               []Block       `json:"chain"`
+	CurrentTransactions []Transaction `json:"currentTransactions"`
 }
 
-func NewBlockChain() *BlockChain {
-	bc := &BlockChain{}
+func NewBlockChain() *Blockchain {
+	bc := &Blockchain{
+		Chain:               make([]Block, 0),
+		CurrentTransactions: make([]Transaction, 0),
+	}
 	bc.CreateGenesisBlock()
 	return bc
 }
 
-func (bc *BlockChain) CreateGenesisBlock() {
+func (bc *Blockchain) GetLastBlock() Block {
+	return bc.Chain[len(bc.Chain)-1]
+}
+
+func (bc *Blockchain) CreateGenesisBlock() {
 	genesisBlock := Block{
 		Index:        0,
-		TimeStamp:    time.Now().Unix(),
-		Transactions: nil,
+		Timestamp:    time.Now().Unix(),
+		Transactions: make([]Transaction, 0),
 		Proof:        100,
 		PreviousHash: "0",
 	}
+	genesisBlock.Hash = genesisBlock.CalculateHash()
 	bc.Chain = append(bc.Chain, genesisBlock)
 }
 
-func (bc *BlockChain) AddTransaction(sender, recipient string, amount float64) {
-	transaction := Transaction{Sender: sender, Recipient: recipient, Amount: amount}
+func (bc *Blockchain) AddTransaction(sender, recipient string, amount float64) {
+	transaction := Transaction{
+		Sender:    sender,
+		Recipient: recipient,
+		Amount:    amount,
+	}
 	bc.CurrentTransactions = append(bc.CurrentTransactions, transaction)
 }
 
-func (bc *BlockChain) MineBlock(proof int64) *Block {
-	lastBlock := bc.Chain[len(bc.Chain)-1]
+func (bc *Blockchain) MineBlock() Block {
+	lastBlock := bc.GetLastBlock()
+	
 	newBlock := Block{
 		Index:        len(bc.Chain),
-		TimeStamp:    time.Now().Unix(),
+		Timestamp:    time.Now().Unix(),
 		Transactions: bc.CurrentTransactions,
-		Proof:        proof,
-		PreviousHash: Hash(lastBlock),
+		PreviousHash: lastBlock.Hash,
 	}
+
+	proof := bc.ProofOfWork(lastBlock.Proof)
+	newBlock.Proof = proof
+	newBlock.Hash = newBlock.CalculateHash()
+
+	// Add the block to the chain
 	bc.Chain = append(bc.Chain, newBlock)
-	bc.CurrentTransactions = nil
-	return &newBlock
+	
+	// Clear the current transactions
+	bc.CurrentTransactions = make([]Transaction, 0)
+
+	return newBlock
 }
 
-func Hash(block Block) string {
-	data, _ := json.Marshal(block)
-	hash := sha256.Sum256(data)
-	return hex.EncodeToString(hash[:])
+func (bc *Blockchain) ProofOfWork(lastProof int64) int64 {
+	proof := int64(0)
+	for !bc.ValidProof(lastProof, proof) {
+		proof++
+	}
+	return proof
+}
+
+func (bc *Blockchain) ValidProof(lastProof, proof int64) bool {
+	guess := []byte(string(lastProof) + string(proof))
+	hash := sha256.Sum256(guess)
+	hexHash := hex.EncodeToString(hash[:])
+	return strings.HasPrefix(hexHash, strings.Repeat("0", MINING_DIFFICULTY))
 }

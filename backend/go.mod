@@ -1,3 +1,3 @@
-module blockchain-backend
+module github.com/Znman/go-pow/backend
 
-go 1.19
+go 1.20

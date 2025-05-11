@@ -27,6 +27,10 @@ const navigateTo = (route: string) => {
         <span class="button-icon">💸</span>
         Transactions
       </button>
+      <button @click="navigateTo('mining')" class="nav-button">
+        <span class="button-icon">⛏️</span>
+        Mining
+      </button>
     </div>
   </div>
 </template>
@@ -34,56 +38,35 @@ const navigateTo = (route: string) => {
 <style scoped>
 .navigation-container {
   text-align: center;
-  margin-bottom: 2rem;
-  padding: 1rem;
-  background-color: var(--color-background-soft);
-  border-radius: 8px;
-}
-
-.navigation-container h1 {
-  margin-bottom: 1.5rem;
-  color: var(--color-heading);
+  padding: 20px;
 }
 
 .nav-buttons {
   display: flex;
-  gap: 1rem;
+  gap: 20px;
   justify-content: center;
-  flex-wrap: wrap;
+  margin-top: 20px;
 }
 
 .nav-button {
+  padding: 12px 24px;
+  font-size: 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-text);
-  background-color: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s ease;
 }
 
 .nav-button:hover {
-  background-color: var(--color-background-mute);
-  transform: translateY(-2px);
+  background-color: #45a049;
 }
 
 .button-icon {
-  font-size: 1.2rem;
-}
-
-@media (max-width: 768px) {
-  .nav-buttons {
-    flex-direction: column;
-  }
-
-  .nav-button {
-    width: 100%;
-    justify-content: center;
-  }
+  margin-right: 8px;
+  font-size: 20px;
 }
 </style>

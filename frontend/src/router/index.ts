@@ -5,6 +5,7 @@ import type { RouteRecordRaw } from 'vue-router'
 const TheWelcome = () => import('../components/TheWelcome.vue')
 const Blockchain = () => import('../components/Blockchain.vue')
 const Transactions = () => import('../components/Transactions.vue')
+const Mining = () => import('../components/Mining.vue')
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -21,6 +22,11 @@ const routes: Array<RouteRecordRaw> = [
     path: '/transactions',
     name: 'transactions',
     component: Transactions
+  },
+  {
+    path: '/mining',
+    name: 'mining',
+    component: Mining
   }
 ]
 
