@@ -1,18 +1,5 @@
-<template>
-  <div class="chart-container">
-    <Line
-      v-if="blocks.length > 0"
-      :data="chartData"
-      :options="chartOptions"
-    />
-    <div v-else class="no-data">
-      No blocks available to display
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, onMounted, computed } from 'vue';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -22,12 +9,11 @@ import {
   Title,
   Tooltip,
   Legend,
-  type ChartData,
-  type ChartOptions
+  TimeScale
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
+import 'chartjs-adapter-date-fns' // We'll need to install this
 
-// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -35,7 +21,8 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  TimeScale
 )
 
 interface Block {
@@ -47,143 +34,140 @@ interface Block {
   hash: string
 }
 
-interface Props {
-  blocks: Block[]
+interface BlockchainData {
+  chain: Block[]
+  currentTransactions: any[]
 }
 
-const props = defineProps<Props>()
+const props = defineProps<{
+  blockchain: BlockchainData | null
+}>()
 
-const chartData = computed<ChartData<'line'>>(() => {
-  const sortedBlocks = [...props.blocks].sort((a, b) => a.timestamp - b.timestamp)
-  
+const chartData = computed(() => {
+  if (!props.blockchain?.chain) {
+    return {
+      datasets: [{
+        label: 'Block Growth',
+        data: [],
+        fill: false,
+        borderColor: '#4CAF50',
+        tension: 0.1
+      }]
+    }
+  }
+
+  // Sort blocks by timestamp
+  const sortedBlocks = [...props.blockchain.chain].sort((a, b) => a.timestamp - b.timestamp)
+
+  // Convert timestamp to JavaScript Date objects and create data points
+  const dataPoints = sortedBlocks.map(block => ({
+    x: block.timestamp * 1000, // Convert Unix timestamp to milliseconds
+    y: block.index
+  }))
+
   return {
-    labels: sortedBlocks.map(block => {
-      const date = new Date(block.timestamp * 1000)
-      return date.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    }),
-    datasets: [
-      {
-        label: 'Block Height',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        borderColor: 'rgba(75, 192, 192, 1)',
-        borderWidth: 2,
-        data: sortedBlocks.map(block => block.index),
-        fill: true,
-        tension: 0.4
-      },
-      {
-        label: 'Transactions',
-        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-        borderColor: 'rgba(255, 99, 132, 1)',
-        borderWidth: 2,
-        data: sortedBlocks.map(block => block.transactions?.length || 0),
-        fill: true,
-        tension: 0.4,
-        yAxisID: 'transactions'
-      }
-    ]
+    datasets: [{
+      label: 'Block Growth',
+      data: dataPoints,
+      fill: false,
+      borderColor: '#4CAF50',
+      tension: 0.1,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      pointBackgroundColor: '#4CAF50'
+    }]
   }
 })
 
-const chartOptions = computed<ChartOptions<'line'>>(() => ({
+const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
-  interaction: {
-    mode: 'index' as const,
-    intersect: false
-  },
   scales: {
     x: {
-      ticks: {
-        maxRotation: 45,
-        minRotation: 45
+      type: 'time' as const,
+      time: {
+        unit: 'hour' as const,
+        displayFormats: {
+          hour: 'HH:mm'
+        },
+        tooltipFormat: 'yyyy-MM-dd HH:mm'
       },
       title: {
         display: true,
-        text: 'Time'
+        text: 'Time (Hours)',
+        color: '#666',
+        font: {
+          size: 12,
+          weight: 'bold'
+        }
       }
     },
     y: {
-      type: 'linear' as const,
-      display: true,
-      position: 'left' as const,
       beginAtZero: true,
       title: {
         display: true,
-        text: 'Block Height'
-      }
-    },
-    transactions: {
-      type: 'linear' as const,
-      display: true,
-      position: 'right' as const,
-      beginAtZero: true,
-      grid: {
-        drawOnChartArea: false
+        text: 'Block Number',
+        color: '#666',
+        font: {
+          size: 12,
+          weight: 'bold'
+        }
       },
-      title: {
-        display: true,
-        text: 'Transactions'
+      ticks: {
+        stepSize: 1
       }
     }
   },
   plugins: {
     legend: {
+      display: true,
       position: 'top' as const
     },
     title: {
       display: true,
-      text: 'Blockchain Growth',
+      text: 'Blockchain Growth Over Time',
       font: {
-        size: 16
+        size: 16,
+        weight: 'bold'
       }
     },
     tooltip: {
       callbacks: {
-        title: (items) => {
-          if (!items.length) return ''
-          const idx = items[0].dataIndex
-          const blocks = props.blocks
-          const block = blocks[idx]
-          return `Block #${block.index} - ${new Date(block.timestamp * 1000).toLocaleString()}`
+        label: (context: any) => {
+          return `Block ${context.parsed.y}`
         },
-        label: (context) => {
-          const label = context.dataset.label || ''
-          const value = context.parsed.y
-          if (label === 'Block Height') {
-            return `Height: ${value}`
-          }
-          return `Transactions: ${value}`
+        title: (tooltipItems: any[]) => {
+          const date = new Date(tooltipItems[0].parsed.x)
+          return date.toLocaleString()
         }
       }
     }
+  },
+  interaction: {
+    intersect: false,
+    mode: 'index'
   }
-}))
+}
 </script>
+
+<template>
+  <div class="chart-container">
+    <Line :data="chartData" :options="chartOptions" style="height: 400px;" />
+  </div>
+</template>
 
 <style scoped>
 .chart-container {
-  position: relative;
-  height: 400px;
-  width: 100%;
-  margin: 20px 0;
-  padding: 20px;
   background: white;
+  padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
 }
 
-.no-data {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: #666;
-  font-size: 1.1em;
+@media (max-width: 768px) {
+  .chart-container {
+    padding: 10px;
+  }
 }
 </style>

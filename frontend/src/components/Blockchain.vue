@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
+import BlockchainGraph from './BlockchainGraph.vue'
+
 
 interface Transaction {
   sender: string    // Changed from Sender to match backend JSON
   recipient: string // Changed from Recipient to match backend JSON
   amount: number    // Changed from Amount to match backend JSON
+  message: string
 }
 
 interface Block {
@@ -108,6 +111,11 @@ onUnmounted(() => {
     <div v-if="error" class="error-message">
       {{ error }}
     </div>
+    <!-- Stats Section -->
+    <BlockchainStats :blockchain="blockchain" />
+
+    <!-- Graph Section -->
+    <BlockchainGraph :blockchain="blockchain" />
 
     <!-- Blockchain Data -->
     <div class="blockchain-data" v-if="blockchain">
@@ -339,5 +347,11 @@ button:disabled {
   color: #666;
   font-style: italic;
   border-left: 3px solid #4CAF50;
+}
+
+.blockchain-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
 }
 </style>
