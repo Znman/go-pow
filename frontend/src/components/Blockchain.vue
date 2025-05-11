@@ -135,10 +135,15 @@ onUnmounted(() => {
             <h4>Transactions</h4>
             <div v-if="block.transactions && block.transactions.length > 0" class="transactions-list">
               <div v-for="(tx, index) in block.transactions" :key="index" class="transaction">
-                <span class="sender">{{ tx.sender }}</span>
-                <span class="arrow">→</span>
-                <span class="recipient">{{ tx.recipient }}</span>
-                <span class="amount">{{ tx.amount }} coins</span>
+                <div class="transaction-main">
+                  <span class="sender">{{ tx.sender }}</span>
+                  <span class="arrow">→</span>
+                  <span class="recipient">{{ tx.recipient }}</span>
+                  <span class="amount">{{ tx.amount }} coins</span>
+                </div>
+                <div v-if="tx.message" class="transaction-message">
+                  "{{ tx.message }}"
+                </div>
               </div>
             </div>
             <div v-else class="no-transactions">
@@ -312,5 +317,27 @@ button:disabled {
 
 .button-icon {
   font-size: 16px;
+}
+
+.transaction {
+  flex-direction: column;
+  padding: 15px;
+}
+
+.transaction-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.transaction-message {
+  margin-top: 8px;
+  padding: 8px;
+  background: #fff;
+  border-radius: 4px;
+  color: #666;
+  font-style: italic;
+  border-left: 3px solid #4CAF50;
 }
 </style>
