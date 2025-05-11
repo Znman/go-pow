@@ -10,6 +10,17 @@ import (
 
 var blockchain = core.NewBlockChain()
 
+type TransactionRequest struct {
+    Sender    string  `json:"sender"`
+    Recipient string  `json:"recipient"`
+    Amount    float64 `json:"amount"`
+}
+
+type TransactionResponse struct {
+    Message     string           `json:"message"`
+    Transaction core.Transaction `json:"transaction"`
+}
+
 type MineResponse struct {
     Message string     `json:"message"`
     Block   core.Block `json:"block"`
@@ -20,7 +31,6 @@ func enableCORS(next http.Handler) http.Handler {
         w.Header().Set("Access-Control-Allow-Origin", "*")
         w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-        w.Header().Set("Content-Type", "application/json")
 
         if r.Method == "OPTIONS" {
             w.WriteHeader(http.StatusOK)
@@ -29,6 +39,29 @@ func enableCORS(next http.Handler) http.Handler {
 
         next.ServeHTTP(w, r)
     })
+}
+
+func addTransaction(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    var req TransactionRequest
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    transaction := blockchain.AddTransaction(req.Sender, req.Recipient, req.Amount)
+
+    response := TransactionResponse{
+        Message:     "Transaction added successfully",
+        Transaction: transaction,
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(response)
 }
 
 func mineBlock(w http.ResponseWriter, r *http.Request) {
@@ -56,11 +89,10 @@ func getChain(w http.ResponseWriter, r *http.Request) {
 func main() {
     mux := http.NewServeMux()
     
-    // Register routes
     mux.HandleFunc("/chain", getChain)
+    mux.HandleFunc("/transactions/new", addTransaction)
     mux.HandleFunc("/mine", mineBlock)
 
-    // Wrap with CORS middleware
     handler := enableCORS(mux)
 
     log.Println("Server running on http://localhost:8000")
