@@ -27,10 +27,10 @@ const navigateTo = (route: string) => {
         <span class="button-icon">💸</span>
         Transactions
       </button>
-      <button @click="navigateTo('mining')" class="nav-button">
+      <!-- <button @click="navigateTo('mining')" class="nav-button">
         <span class="button-icon">⛏️</span>
         Mining
-      </button>
+      </button> -->
     </div>
   </div>
 </template>
