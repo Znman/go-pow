@@ -27,7 +27,7 @@ func NewBlockChain() *Blockchain {
 func (bc *Blockchain) CreateGenesisBlock() {
     genesisBlock := Block{
         Index:        0,
-        Timestamp:    time.Now().Unix(),
+        TimeStamp:    time.Now().Unix(),
         Transactions: make([]Transaction, 0),
         Proof:        100,
         PreviousHash: "0",
@@ -59,15 +59,18 @@ func (bc *Blockchain) MineBlock() Block {
     
     newBlock := Block{
         Index:        len(bc.Chain),
-        Timestamp:    time.Now().Unix(),
+        TimeStamp:    time.Now().Unix(),
         Transactions: transactions,
         PreviousHash: lastBlock.Hash,
+        Proof:        0,
     }
 
+    // Find the proof
     proof := bc.ProofOfWork(lastBlock.Proof)
     newBlock.Proof = proof
     newBlock.Hash = newBlock.CalculateHash()
 
+    // Add block to chain and clear current transactions
     bc.Chain = append(bc.Chain, newBlock)
     bc.CurrentTransactions = make([]Transaction, 0)
 
