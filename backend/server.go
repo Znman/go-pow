@@ -4,22 +4,21 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/Znman/go-pow/backend/core"
 )
 
 var blockchain = core.NewBlockChain()
 
-// Define the response structures
 type TransactionRequest struct {
 	Sender    string  `json:"sender"`
 	Recipient string  `json:"recipient"`
 	Amount    float64 `json:"amount"`
 }
 
-type MiningResponse struct {
-	Message string     `json:"message"`
-	Block   core.Block `json:"block"`
+type SearchResponse struct {
+	Results []core.Block `json:"results"`
 }
 
 func enableCORS(next http.Handler) http.Handler {
@@ -42,53 +41,58 @@ func getChain(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(blockchain)
 }
 
-func addTransaction(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
+func searchBlocks(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("q")
+	searchType := r.URL.Query().Get("type")
+
+	var results []core.Block
+
+	if searchType == "block" {
+		if blockNum, err := strconv.Atoi(query); err == nil {
+			if block := blockchain.GetBlockByIndex(blockNum); block != nil {
+				results = append(results, *block)
+			}
+		}
+	} else if searchType == "transaction" {
+		results = blockchain.SearchTransactions(query)
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(SearchResponse{Results: results})
+}
+
+func addTransaction(w http.ResponseWriter, r *http.Request) {
 	var req TransactionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	blockchain.AddTransaction(req.Sender, req.Recipient, req.Amount)
+	index := blockchain.AddTransaction(req.Sender, req.Recipient, req.Amount)
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": "Transaction added successfully",
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Transaction will be added to Block " + strconv.Itoa(index),
 	})
 }
 
 func mineBlock(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	block := blockchain.MineBlock()
 
-	response := MiningResponse{
-		Message: "New Block Mined!",
-		Block:   block,
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(block)
 }
 
 func main() {
 	mux := http.NewServeMux()
 	
 	mux.HandleFunc("/chain", getChain)
+	mux.HandleFunc("/search", searchBlocks)
 	mux.HandleFunc("/transactions/new", addTransaction)
 	mux.HandleFunc("/mine", mineBlock)
 
 	handler := enableCORS(mux)
 
-	log.Println("Running server at http://localhost:8000")
+	log.Println("Server running on http://localhost:8000")
 	log.Fatal(http.ListenAndServe(":8000", handler))
 }

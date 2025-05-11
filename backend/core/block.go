@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"time"
 )
 
 type Block struct {
@@ -33,4 +34,8 @@ func (b *Block) CalculateHash() string {
 	jsonData, _ := json.Marshal(data)
 	hash := sha256.Sum256(jsonData)
 	return hex.EncodeToString(hash[:])
+}
+
+func (b *Block) GetTimestamp() time.Time {
+	return time.Unix(b.Timestamp, 0)
 }

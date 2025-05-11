@@ -1,32 +1,26 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 
-// Importing components with proper TypeScript support
-const TheWelcome = () => import('../components/TheWelcome.vue')
-const Blockchain = () => import('../components/Blockchain.vue')
-const Transactions = () => import('../components/Transactions.vue')
-const Mining = () => import('../components/Mining.vue')
-
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     name: 'home',
-    component: TheWelcome
+    component: () => import('../components/TheWelcome.vue')
   },
   {
     path: '/blockchain',
     name: 'blockchain',
-    component: Blockchain
+    component: () => import('../components/Blockchain.vue')
   },
   {
     path: '/transactions',
     name: 'transactions',
-    component: Transactions
+    component: () => import('../components/Transactions.vue')
   },
   {
-    path: '/mining',
-    name: 'mining',
-    component: Mining
+    path: '/explorer',
+    name: 'explorer',
+    component: () => import('../components/Explorer.vue')
   }
 ]
 

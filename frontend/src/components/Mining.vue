@@ -37,7 +37,7 @@ const fetchBlockchainStatus = async () => {
     const response = await axios.get('http://localhost:8000/chain')
     if (response.data && response.data.chain) {
       blockchainStatus.value.totalBlocks = response.data.chain.length
-      blockchainStatus.value.pendingTransactions = 
+      blockchainStatus.value.pendingTransactions =
         response.data.currentTransactions ? response.data.currentTransactions.length : 0
     }
   } catch (err) {
@@ -73,7 +73,7 @@ const formatTimestamp = (timestamp: number): string => {
 // Format hash with ellipsis
 const formatHash = (hash: string | undefined): string => {
   if (!hash) return 'N/A'
-  return hash.length > 16 
+  return hash.length > 16
     ? `${hash.substring(0, 8)}...${hash.substring(hash.length - 8)}`
     : hash
 }
@@ -85,9 +85,9 @@ const formatNumber = (num: number): string => {
 
 // Check if block has valid data
 const isValidBlock = (block: Block | null): boolean => {
-  return block !== null && 
-         typeof block.index !== 'undefined' && 
-         typeof block.timestamp !== 'undefined'
+  return block !== null &&
+    typeof block.index !== 'undefined' &&
+    typeof block.timestamp !== 'undefined'
 }
 
 onMounted(async () => {
@@ -98,7 +98,7 @@ onMounted(async () => {
 <template>
   <div class="mining-container">
     <h2>Blockchain Mining Dashboard</h2>
-    
+
     <!-- Blockchain Status -->
     <div class="status-panel">
       <div class="status-item">
@@ -110,11 +110,7 @@ onMounted(async () => {
 
     <!-- Mining Control -->
     <div class="mining-control">
-      <button 
-        @click="startMining" 
-        :disabled="isMining"
-        class="mine-button"
-      >
+      <button @click="startMining" :disabled="isMining" class="mine-button">
         <span class="button-icon">⛏️</span>
         {{ isMining ? 'Mining in Progress...' : 'Start Mining' }}
       </button>
@@ -162,15 +158,12 @@ onMounted(async () => {
             <span class="hash">{{ lastMinedBlock.previousHash }}</span>
           </div>
         </div>
-        
+
         <!-- Transactions -->
         <div class="transactions-section">
           <h4>Transactions in this block</h4>
-          <div v-if="lastMinedBlock.transactions && lastMinedBlock.transactions.length > 0" 
-               class="transactions">
-            <div v-for="(tx, index) in lastMinedBlock.transactions" 
-                 :key="index" 
-                 class="transaction-item">
+          <div v-if="lastMinedBlock.transactions && lastMinedBlock.transactions.length > 0" class="transactions">
+            <div v-for="(tx, index) in lastMinedBlock.transactions" :key="index" class="transaction-item">
               <div class="transaction-details">
                 <div class="address">
                   <span class="label">From:</span>
@@ -208,7 +201,7 @@ onMounted(async () => {
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .status-item h3 {
@@ -261,8 +254,13 @@ onMounted(async () => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .error-message {
@@ -281,7 +279,7 @@ onMounted(async () => {
   border-radius: 8px;
   padding: 20px;
   margin-top: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .info-grid {
