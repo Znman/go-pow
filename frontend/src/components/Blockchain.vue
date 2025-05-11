@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 
 interface Transaction {
-  sender: string
-  recipient: string
-  amount: number
+  Sender: string
+  Recipient: string
+  Amount: number
 }
 
 interface Block {
@@ -25,8 +25,9 @@ interface BlockchainData {
 const blockchain = ref<BlockchainData | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
-const currentTime = ref(new Date().toISOString())
+const miningInProgress = ref(false)
 
+// Fetch blockchain data
 const fetchChain = async () => {
   loading.value = true
   error.value = null
@@ -34,7 +35,6 @@ const fetchChain = async () => {
   try {
     const response = await axios.get<BlockchainData>('http://localhost:8000/chain')
     blockchain.value = response.data
-    currentTime.value = new Date().toISOString()
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Failed to load blockchain'
     console.error('Error loading blockchain:', err)
@@ -43,22 +43,41 @@ const fetchChain = async () => {
   }
 }
 
+// Mine new block
 const mineBlock = async () => {
+  if (miningInProgress.value) return
+
+  miningInProgress.value = true
+  error.value = null
+
   try {
     await axios.post('http://localhost:8000/mine')
-    await fetchChain()
+    await fetchChain() // Refresh the chain after mining
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Mining failed'
-    console.error('Mining error:', err)
+    console.error('Error mining block:', err)
+  } finally {
+    miningInProgress.value = false
   }
 }
 
+// Format timestamp
 const formatTimestamp = (timestamp: number): string => {
   return new Date(timestamp * 1000).toLocaleString()
 }
 
+// Auto refresh setup
+const refreshInterval = ref<number | null>(null)
+
 onMounted(() => {
   fetchChain()
+  refreshInterval.value = window.setInterval(fetchChain, 30000)
+})
+
+onUnmounted(() => {
+  if (refreshInterval.value) {
+    clearInterval(refreshInterval.value)
+  }
 })
 </script>
 
@@ -67,17 +86,16 @@ onMounted(() => {
     <header class="main-header">
       <div class="header-content">
         <div class="title-section">
-          <h1>Blockchain Explorer</h1>
-          <p class="subtitle">Last updated: {{ new Date(currentTime).toLocaleString() }}</p>
+          <h1>Blockchain</h1>
         </div>
         <div class="actions">
-          <button @click="mineBlock" class="mine-button">
+          <button @click="mineBlock" :disabled="miningInProgress" class="mine-button">
             <span class="button-icon">⛏️</span>
-            Mine New Block
+            {{ miningInProgress ? 'Mining...' : 'Mine New Block' }}
           </button>
           <button @click="fetchChain" :disabled="loading" class="refresh-button">
             <span class="button-icon">🔄</span>
-            {{ loading ? 'Syncing...' : 'Sync Chain' }}
+            Refresh
           </button>
         </div>
       </div>
@@ -91,7 +109,7 @@ onMounted(() => {
     <!-- Blockchain Data -->
     <div class="blockchain-data" v-if="blockchain">
       <div class="blocks-container">
-        <div v-for="block in blockchain.chain" :key="block.index" class="block-card">
+        <div v-for="block in [...blockchain.chain].reverse()" :key="block.index" class="block-card">
           <div class="block-header">
             <h3>Block #{{ block.index }}</h3>
             <span class="timestamp">{{ formatTimestamp(block.timestamp) }}</span>
@@ -114,10 +132,10 @@ onMounted(() => {
             <h4>Transactions</h4>
             <div v-if="block.transactions && block.transactions.length > 0" class="transactions-list">
               <div v-for="(tx, index) in block.transactions" :key="index" class="transaction">
-                <span class="sender">{{ tx.sender }}</span>
+                <span class="sender">{{ tx.Sender }}</span>
                 <span class="arrow">→</span>
-                <span class="recipient">{{ tx.recipient }}</span>
-                <span class="amount">{{ tx.amount }} coins</span>
+                <span class="recipient">{{ tx.Recipient }}</span>
+                <span class="amount">{{ tx.Amount }} coins</span>
               </div>
             </div>
             <div v-else class="no-transactions">
@@ -282,6 +300,4 @@ button:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
 }
-
-/* ... Your existing styles ... */
 </style>
