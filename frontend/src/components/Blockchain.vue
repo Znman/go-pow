@@ -3,9 +3,9 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 
 interface Transaction {
-  Sender: string
-  Recipient: string
-  Amount: number
+  sender: string    // Changed from Sender to match backend JSON
+  recipient: string // Changed from Recipient to match backend JSON
+  amount: number    // Changed from Amount to match backend JSON
 }
 
 interface Block {
@@ -26,6 +26,7 @@ const blockchain = ref<BlockchainData | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const miningInProgress = ref(false)
+const currentTime = ref(new Date().toISOString())
 
 // Fetch blockchain data
 const fetchChain = async () => {
@@ -35,6 +36,7 @@ const fetchChain = async () => {
   try {
     const response = await axios.get<BlockchainData>('http://localhost:8000/chain')
     blockchain.value = response.data
+    currentTime.value = new Date().toISOString()
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Failed to load blockchain'
     console.error('Error loading blockchain:', err)
@@ -86,7 +88,8 @@ onUnmounted(() => {
     <header class="main-header">
       <div class="header-content">
         <div class="title-section">
-          <h1>Blockchain</h1>
+          <h1>Blockchain Explorer</h1>
+          <p class="subtitle">Last updated: {{ new Date(currentTime).toLocaleString() }}</p>
         </div>
         <div class="actions">
           <button @click="mineBlock" :disabled="miningInProgress" class="mine-button">
@@ -95,7 +98,7 @@ onUnmounted(() => {
           </button>
           <button @click="fetchChain" :disabled="loading" class="refresh-button">
             <span class="button-icon">🔄</span>
-            Refresh
+            {{ loading ? 'Syncing...' : 'Sync Chain' }}
           </button>
         </div>
       </div>
@@ -132,10 +135,10 @@ onUnmounted(() => {
             <h4>Transactions</h4>
             <div v-if="block.transactions && block.transactions.length > 0" class="transactions-list">
               <div v-for="(tx, index) in block.transactions" :key="index" class="transaction">
-                <span class="sender">{{ tx.Sender }}</span>
+                <span class="sender">{{ tx.sender }}</span>
                 <span class="arrow">→</span>
-                <span class="recipient">{{ tx.Recipient }}</span>
-                <span class="amount">{{ tx.Amount }} coins</span>
+                <span class="recipient">{{ tx.recipient }}</span>
+                <span class="amount">{{ tx.amount }} coins</span>
               </div>
             </div>
             <div v-else class="no-transactions">
@@ -168,6 +171,17 @@ onUnmounted(() => {
   align-items: center;
 }
 
+.title-section h1 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.subtitle {
+  margin: 5px 0 0;
+  color: #666;
+  font-size: 0.9em;
+}
+
 .actions {
   display: flex;
   gap: 10px;
@@ -183,7 +197,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  transition: background-color 0.3s;
+  transition: all 0.3s ease;
 }
 
 .mine-button {
@@ -191,29 +205,27 @@ onUnmounted(() => {
   color: white;
 }
 
-.mine-button:hover:not(:disabled) {
-  background-color: #45a049;
-}
-
 .refresh-button {
   background-color: #2196F3;
   color: white;
 }
 
-.refresh-button:hover:not(:disabled) {
-  background-color: #1e88e5;
-}
-
-.button-icon {
-  font-size: 16px;
+button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .block-card {
-  background-color: white;
-  padding: 20px;
+  background: white;
   border-radius: 8px;
+  padding: 20px;
   margin-bottom: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.block-card:hover {
+  transform: translateY(-2px);
 }
 
 .block-header {
@@ -221,16 +233,8 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
-}
-
-.block-header h3 {
-  margin: 0;
-  color: #2c3e50;
-}
-
-.timestamp {
-  color: #666;
-  font-size: 0.9em;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
 }
 
 .block-details {
@@ -253,11 +257,13 @@ onUnmounted(() => {
   background-color: #f8f9fa;
   padding: 4px 8px;
   border-radius: 4px;
+  font-size: 0.9em;
 }
 
 .transactions {
-  border-top: 1px solid #eee;
+  margin-top: 15px;
   padding-top: 15px;
+  border-top: 1px solid #eee;
 }
 
 .transaction {
@@ -270,6 +276,14 @@ onUnmounted(() => {
   margin-bottom: 8px;
 }
 
+.sender,
+.recipient {
+  font-family: monospace;
+  padding: 2px 6px;
+  background-color: #e9ecef;
+  border-radius: 3px;
+}
+
 .arrow {
   color: #666;
 }
@@ -280,14 +294,6 @@ onUnmounted(() => {
   color: #4CAF50;
 }
 
-.error-message {
-  background-color: #ffe6e6;
-  color: #dc3545;
-  padding: 15px;
-  border-radius: 4px;
-  margin-bottom: 20px;
-}
-
 .no-transactions {
   color: #666;
   text-align: center;
@@ -296,8 +302,15 @@ onUnmounted(() => {
   border-radius: 4px;
 }
 
-button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
+.error-message {
+  background-color: #ffe6e6;
+  color: #dc3545;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.button-icon {
+  font-size: 16px;
 }
 </style>
