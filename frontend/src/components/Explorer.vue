@@ -82,8 +82,8 @@ const formatTimestamp = (timestamp: number): string => {
 
 // Display blocks
 const displayedBlocks = computed(() => {
-  return searchResults.value.length > 0 ? searchResults.value : 
-         blockchain.value ? blockchain.value.chain : []
+  return searchResults.value.length > 0 ? searchResults.value :
+    blockchain.value ? blockchain.value.chain : []
 })
 
 // Stats
@@ -152,13 +152,9 @@ onUnmounted(() => {
           <option value="block">Block Number</option>
           <option value="transaction">Transaction</option>
         </select>
-        <input
-          v-model="searchQuery"
-          @input="searchBlocks"
-          type="text"
+        <input v-model="searchQuery" @input="searchBlocks" type="text"
           :placeholder="searchType === 'block' ? 'Enter block number...' : 'Search transactions...'"
-          class="search-input"
-        />
+          class="search-input" />
       </div>
     </div>
 
@@ -170,9 +166,7 @@ onUnmounted(() => {
     <!-- Results -->
     <div class="blockchain-data">
       <div class="blocks-container">
-        <div v-for="block in displayedBlocks" 
-             :key="block.index" 
-             class="block-card">
+        <div v-for="block in displayedBlocks" :key="block.index" class="block-card">
           <div class="block-header">
             <h3>Block #{{ block.index }}</h3>
             <span class="timestamp">{{ formatTimestamp(block.timestamp) }}</span>
@@ -194,9 +188,7 @@ onUnmounted(() => {
           <div class="transactions">
             <h4>Transactions ({{ block.transactions.length }})</h4>
             <div v-if="block.transactions.length > 0" class="transactions-list">
-              <div v-for="(tx, index) in block.transactions" 
-                   :key="index" 
-                   class="transaction">
+              <div v-for="(tx, index) in block.transactions" :key="index" class="transaction">
                 <span class="sender">{{ tx.Sender }}</span>
                 <span class="arrow">→</span>
                 <span class="recipient">{{ tx.Recipient }}</span>
@@ -255,7 +247,7 @@ onUnmounted(() => {
   padding: 20px;
   border-radius: 8px;
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .stat-card h3 {
@@ -281,7 +273,7 @@ onUnmounted(() => {
   background-color: white;
   padding: 15px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .search-type {
@@ -324,7 +316,7 @@ onUnmounted(() => {
   padding: 20px;
   border-radius: 8px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .block-header {
