@@ -189,65 +189,59 @@ onUnmounted(() => {
     <header class="main-header">
       <div class="header-content">
         <div class="title-section">
-          <h1>Blockchain Explorer</h1>
-          <p class="subtitle">Last updated: {{ new Date(currentTime).toLocaleString() }}</p>
+          <h1>区块链挖矿模拟</h1>
+          <p class="subtitle">最后一次更新: {{ new Date(currentTime).toLocaleString() }}</p>
         </div>
         <div class="actions">
           <button @click="mineBlock" :disabled="miningInProgress" class="mine-button">
             <span class="button-icon">⛏️</span>
-            {{ miningInProgress ? 'Mining...' : 'Mine New Block' }}
+            {{ miningInProgress ? '挖矿种...' : '挖取新的区块' }}
           </button>
           <button @click="fetchChain" :disabled="loading" class="refresh-button">
             <span class="button-icon">🔄</span>
-            {{ loading ? 'Syncing...' : 'Sync Chain' }}
+            {{ loading ? '同步中...' : '同步区块链' }}
           </button>
         </div>
       </div>
       <div class="consensus-section">
-        <h2 class="section-title">Consensus Competition (Three Nodes)</h2>
-        <div class="section-desc">
-          <span>
-            Watch three nodes compete to mine the next block! The first one to find a valid proof wins and adds the block
-            to the chain.
-          </span>
-        </div>
+        <h2 class="section-title">共识演示</h2>
         <div class="competition-controls">
           <button class="mine-btn" :disabled="competitionActive" @click="startCompetition">
-            Start Competition
+            开始共识
           </button>
           <span v-if="winnerNode !== null" class="winner-msg">
-            🏆 Node {{ winnerNode + 1 }} wins! Block added to chain.
+            🏆 区块 {{ winnerNode + 1 }} 成功! 新区块将加入到链上.
           </span>
         </div>
         <div class="competition-nodes">
           <div v-for="(node, idx) in nodes" :key="node.id" :class="['node-card', { winner: winnerNode === idx }]">
             <div class="node-header">
-              <span class="node-title">Node {{ idx + 1 }}</span>
+              <span class="node-title">节点 {{ idx + 1 }}</span>
               <span v-if="winnerNode === idx" class="node-crown">🏆</span>
             </div>
             <div class="node-body">
               <template v-if="node.progress">
                 <div class="node-row">
-                  <span>Attempt:</span>
+                  <span>尝试次数:</span>
                   <span class="node-num">{{ node.progress.attempt }}</span>
                 </div>
                 <div class="node-row">
-                  <span>Proof:</span>
+                  <span>验证次数:</span>
                   <span class="node-num">{{ node.progress.proof }}</span>
                 </div>
                 <div class="node-row">
-                  <span>Hash:</span>
+                  <span>哈希值:</span>
                   <span class="node-hash">{{ node.progress.hash }}</span>
                 </div>
                 <div class="node-row">
-                  <span>Status:</span>
+                  <span>状态:</span>
                   <span :class="['node-status', { found: node.progress.found }]">
                     {{ node.progress.message }}
                   </span>
                 </div>
               </template>
               <template v-else>
-                <div class="node-row node-waiting">Waiting for mining...</div>
+                <div class="node-row node-waiting">等待中...</div>
               </template>
             </div>
           </div>
@@ -290,25 +284,25 @@ onUnmounted(() => {
       <div class="blocks-container">
         <div v-for="block in [...blockchain.chain].reverse()" :key="block.index" class="block-card">
           <div class="block-header">
-            <h3>Block #{{ block.index }}</h3>
+            <h3>区块 #{{ block.index }}</h3>
             <span class="timestamp">{{ formatTimestamp(block.timestamp) }}</span>
           </div>
           <div class="block-details">
             <div class="detail-item">
-              <span class="label">Hash:</span>
+              <span class="label">哈希值:</span>
               <span class="value hash">{{ block.hash }}</span>
             </div>
             <div class="detail-item">
-              <span class="label">Previous Hash:</span>
+              <span class="label">上一个区块的哈希值:</span>
               <span class="value hash">{{ block.previousHash }}</span>
             </div>
             <div class="detail-item">
-              <span class="label">Proof:</span>
+              <span class="label">验证次数:</span>
               <span class="value">{{ block.proof }}</span>
             </div>
           </div>
           <div class="transactions">
-            <h4>Transactions</h4>
+            <h4>交易</h4>
             <div v-if="block.transactions && block.transactions.length > 0" class="transactions-list">
               <div v-for="(tx, index) in block.transactions" :key="index" class="transaction">
                 <div class="transaction-main">
@@ -323,7 +317,7 @@ onUnmounted(() => {
               </div>
             </div>
             <div v-else class="no-transactions">
-              No transactions in this block
+              本区块无交易
             </div>
           </div>
         </div>

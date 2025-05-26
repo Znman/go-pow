@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
-import ConsensusVisualizer from './components/ConsensusVisualizer.vue'
 </script>
 
 <template>
   <header>
     <div class="wrapper">
       <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/blockchain">Blockchain</RouterLink>
-        <RouterLink to="/transactions">Transactions</RouterLink>
+        <RouterLink to="/">首页</RouterLink>
+        <RouterLink to="/blockchain">挖矿模拟</RouterLink>
+        <RouterLink to="/transactions">交易/消息上链</RouterLink>
       </nav>
     </div>
   </header>

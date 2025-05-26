@@ -72,70 +72,43 @@ const submitTransaction = async () => {
 
 <template>
   <div class="transactions-container">
-    <h2>Create New Transaction</h2>
-    
+    <h2>交易/信息上链</h2>
+
     <div class="transaction-type-selector">
-      <button 
-        :class="{ active: transactionType === 'transfer' }"
-        @click="transactionType = 'transfer'">
-        💰 Transfer
+      <button :class="{ active: transactionType === 'transfer' }" @click="transactionType = 'transfer'">
+        💰 新交易
       </button>
-      <button 
-        :class="{ active: transactionType === 'message' }"
-        @click="transactionType = 'message'">
-        ✉️ Message
+      <button :class="{ active: transactionType === 'message' }" @click="transactionType = 'message'">
+        ✉️ 新信息
       </button>
     </div>
 
     <form @submit.prevent="submitTransaction" class="transaction-form">
       <div class="form-group">
-        <label for="sender">Sender</label>
-        <input 
-          id="sender"
-          v-model="form.sender"
-          placeholder="Your name or address"
-          required
-        />
+        <label for="sender">发送方</label>
+        <input id="sender" v-model="form.sender" placeholder="发送方的名称或地址" required />
       </div>
 
       <template v-if="transactionType === 'transfer'">
         <div class="form-group">
-          <label for="recipient">Recipient</label>
-          <input 
-            id="recipient"
-            v-model="form.recipient"
-            placeholder="Recipient's name or address"
-            required
-          />
+          <label for="recipient">接受方</label>
+          <input id="recipient" v-model="form.recipient" placeholder="接受方的名称或地址" required />
         </div>
 
         <div class="form-group">
-          <label for="amount">Amount</label>
-          <input 
-            id="amount"
-            v-model.number="form.amount"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="Amount to send"
-            required
-          />
+          <label for="amount">交易金额</label>
+          <input id="amount" v-model.number="form.amount" type="number" step="0.01" min="0" placeholder="交易金额" required />
         </div>
       </template>
 
       <div class="form-group">
-        <label for="message">Message (optional)</label>
-        <textarea 
-          id="message"
-          v-model="form.message"
-          :placeholder="transactionType === 'message' ? 'Enter your message' : 'Add a message to your transaction'"
-          :required="transactionType === 'message'"
-          rows="3"
-        ></textarea>
+        <label for="message">信息 (可选)</label>
+        <textarea id="message" v-model="form.message" :placeholder="transactionType === 'message' ? '输入信息' : '在你的交易中附加信息'"
+          :required="transactionType === 'message'" rows="3"></textarea>
       </div>
 
       <button type="submit" :disabled="loading" class="submit-button">
-        {{ loading ? 'Submitting...' : transactionType === 'transfer' ? 'Send Transaction' : 'Post Message' }}
+        {{ loading ? '上链中...' : transactionType === 'transfer' ? '上传交易' : '上传信息' }}
       </button>
     </form>
 
@@ -194,7 +167,8 @@ label {
   color: #666;
 }
 
-input, textarea {
+input,
+textarea {
   width: 100%;
   padding: 8px;
   border: 1px solid #ddd;

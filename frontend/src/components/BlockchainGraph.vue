@@ -47,7 +47,7 @@ const chartData = computed(() => {
   if (!props.blockchain?.chain) {
     return {
       datasets: [{
-        label: 'Block Growth',
+        label: '区块链数目',
         data: [],
         fill: false,
         borderColor: '#4CAF50',
@@ -67,7 +67,7 @@ const chartData = computed(() => {
 
   return {
     datasets: [{
-      label: 'Block Growth',
+      label: '区块链数目',
       data: dataPoints,
       fill: false,
       borderColor: '#4CAF50',
@@ -94,7 +94,7 @@ const chartOptions = {
       },
       title: {
         display: true,
-        text: 'Time (Hours)',
+        text: '时间 (小时)',
         color: '#666',
         font: {
           size: 12,
@@ -106,7 +106,7 @@ const chartOptions = {
       beginAtZero: true,
       title: {
         display: true,
-        text: 'Block Number',
+        text: '区块数量',
         color: '#666',
         font: {
           size: 12,
@@ -125,7 +125,7 @@ const chartOptions = {
     },
     title: {
       display: true,
-      text: 'Blockchain Growth Over Time',
+      text: '区块链数目随时间变化图',
       font: {
         size: 16,
         weight: 'bold'

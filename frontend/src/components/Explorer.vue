@@ -116,8 +116,8 @@ onUnmounted(() => {
     <header class="main-header">
       <div class="header-content">
         <div class="title-section">
-          <h1>Blockchain Explorer</h1>
-          <p class="subtitle">Last updated: {{ new Date(currentTime).toLocaleString() }}</p>
+          <h1>区块链浏览器</h1>
+          <p class="subtitle">最后一次更新: {{ new Date(currentTime).toLocaleString() }}</p>
         </div>
         <div class="actions">
           <button @click="fetchChain" :disabled="loading" class="refresh-button">
@@ -132,15 +132,15 @@ onUnmounted(() => {
     <!-- Stats Section -->
     <div v-if="stats" class="stats-section">
       <div class="stat-card">
-        <h3>Total Blocks</h3>
+        <h3>总区块数</h3>
         <p>{{ stats.totalBlocks }}</p>
       </div>
       <div class="stat-card">
-        <h3>Total Transactions</h3>
+        <h3>总交易数</h3>
         <p>{{ stats.totalTransactions }}</p>
       </div>
       <div class="stat-card">
-        <h3>Last Block</h3>
+        <h3>最后一个区块</h3>
         <p>{{ formatTimestamp(stats.lastBlockTime) }}</p>
       </div>
     </div>
@@ -149,12 +149,11 @@ onUnmounted(() => {
     <div class="search-section">
       <div class="search-box">
         <select v-model="searchType" class="search-type" @change="searchBlocks">
-          <option value="block">Block Number</option>
-          <option value="transaction">Transaction</option>
+          <option value="block">区块号</option>
+          <option value="transaction">交易</option>
         </select>
         <input v-model="searchQuery" @input="searchBlocks" type="text"
-          :placeholder="searchType === 'block' ? 'Enter block number...' : 'Search transactions...'"
-          class="search-input" />
+          :placeholder="searchType === 'block' ? '输入区块号...' : '查找交易...'" class="search-input" />
       </div>
     </div>
 
@@ -168,25 +167,25 @@ onUnmounted(() => {
       <div class="blocks-container">
         <div v-for="block in displayedBlocks" :key="block.index" class="block-card">
           <div class="block-header">
-            <h3>Block #{{ block.index }}</h3>
+            <h3>区块 #{{ block.index }}</h3>
             <span class="timestamp">{{ formatTimestamp(block.timestamp) }}</span>
           </div>
           <div class="block-details">
             <div class="detail-item">
-              <span class="label">Hash:</span>
+              <span class="label">哈希:</span>
               <span class="value hash">{{ block.hash }}</span>
             </div>
             <div class="detail-item">
-              <span class="label">Previous Hash:</span>
+              <span class="label">上一个区块的哈希:</span>
               <span class="value hash">{{ block.previousHash }}</span>
             </div>
             <div class="detail-item">
-              <span class="label">Proof:</span>
+              <span class="label">验证次数:</span>
               <span class="value">{{ block.proof }}</span>
             </div>
           </div>
           <div class="transactions">
-            <h4>Transactions ({{ block.transactions.length }})</h4>
+            <h4>交易 ({{ block.transactions.length }})</h4>
             <div v-if="block.transactions.length > 0" class="transactions-list">
               <div v-for="(tx, index) in block.transactions" :key="index" class="transaction">
                 <span class="sender">{{ tx.Sender }}</span>
@@ -196,7 +195,7 @@ onUnmounted(() => {
               </div>
             </div>
             <div v-else class="no-transactions">
-              No transactions in this block
+              此区块无交易
             </div>
           </div>
         </div>

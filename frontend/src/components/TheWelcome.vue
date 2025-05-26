@@ -11,56 +11,53 @@ const navigateTo = (path: string) => {
 <template>
   <div class="welcome-container">
     <div class="welcome-header">
-      <h1>Blockchain PoW Explorer</h1>
-      <p class="subtitle">A Proof of Work Blockchain Demonstration System</p>
+      <h1>基于工作量认证机制的共识系统</h1>
     </div>
 
     <div class="features-grid">
       <div class="feature-card" @click="navigateTo('/explorer')">
         <div class="icon">🔍</div>
-        <h2>Blockchain Explorer</h2>
-        <p>View detailed blockchain information, including block contents, transaction records, and mining proofs.</p>
-        <button class="action-button">Open Explorer</button>
+        <h2>区块链浏览器</h2>
+        <p>查看详细的区块链信息，包括区块内容、交易记录和挖矿证明。</p>
+        <button class="action-button">打开区块链浏览器</button>
       </div>
 
       <div class="feature-card" @click="navigateTo('/blockchain')">
         <div class="icon">⛏️</div>
-        <h2>Block Mining</h2>
-        <p>Experience the blockchain mining process and understand how Proof of Work mechanisms operate.</p>
-        <button class="action-button">Start Mining</button>
+        <h2>挖矿</h2>
+        <p>展示区块链挖矿过程，了解工作量证明机制。</p>
+        <button class="action-button">开始挖矿</button>
       </div>
 
       <div class="feature-card" @click="navigateTo('/transactions')">
         <div class="icon">💸</div>
-        <h2>Transaction Management</h2>
-        <p>Create new transactions and experience the complete blockchain transaction process.</p>
-        <button class="action-button">New Transaction</button>
+        <h2>交易/信息管理</h2>
+        <p>创建新交易，体验消息上链过程。</p>
+        <button class="action-button">交易/信息管理</button>
       </div>
     </div>
 
     <div class="info-section">
-      <h3>About This System</h3>
-      <p>This system is a blockchain demonstration project based on Proof of Work (PoW) consensus mechanism, designed to
-        illustrate the fundamental concepts and operational principles of blockchain technology. Through an interactive
-        interface, users can experience core blockchain functionalities, including:</p>
+      <h3>关于本系统</h3>
+      <p>该系统是一个基于工作量证明（PoW）共识机制的区块链演示项目，旨在展示区块链技术的基本概念和操作原理。通过一个互动界面，用户可以体验区块链的核心功能，包括：</p>
       <ul>
-        <li>Block creation and validation processes</li>
-        <li>Transaction initiation and confirmation mechanisms</li>
-        <li>Proof of Work mining operations</li>
-        <li>Blockchain data transparency and immutability</li>
+        <li>区块创建和验证过程</li>
+        <li>交易发起和确认机制</li>
+        <li>工作量证明挖矿操作</li>
+        <li>区块链数据透明和不可篡改性</li>
       </ul>
 
-      <div class="research-notes">
-        <h4>Research Implementation Notes</h4>
-        <p>This implementation focuses on the following key aspects of blockchain technology:</p>
+      <!-- <div class="research-notes">
+        <h4>研究细节：</h4>
+        <p>本系统重点关注区块链技术的以下关键方面：</p>
         <ul>
-          <li><strong>Consensus Mechanism:</strong> Demonstrates a basic PoW implementation with adjustable difficulty
+          <li><strong></strong> Demonstrates a basic PoW implementation with adjustable difficulty
           </li>
           <li><strong>Data Structure:</strong> Implements linked blocks using cryptographic hashes</li>
           <li><strong>Transaction Management:</strong> Shows UTXO-style transaction handling</li>
           <li><strong>Network Transparency:</strong> Provides real-time visibility of blockchain state</li>
         </ul>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>

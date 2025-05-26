@@ -50,9 +50,9 @@ func MineConsensusStreamHandler(bc *core.Blockchain) http.HandlerFunc {
 				Message:    "",
 			}
 			if found {
-				progress.Message = "Valid proof found!"
+				progress.Message = "找到合适的哈希值!"
 			} else {
-				progress.Message = "Trying next proof..."
+				progress.Message = "正在尝试下一个哈希值..."
 			}
 			jsonData, _ := json.Marshal(progress)
 			fmt.Fprintf(w, "data: %s\n\n", jsonData)
@@ -74,7 +74,7 @@ func MineConsensusStreamHandler(bc *core.Blockchain) http.HandlerFunc {
 			Hash:       hash,
 			Found:      true,
 			BlockIndex: blockIndex,
-			Message:    "Block mined and added to chain.",
+			Message:    "新区块挖掘完成，将会加入到链上.",
 		}
 		jsonData, _ := json.Marshal(finalMsg)
 		fmt.Fprintf(w, "data: %s\n\n", jsonData)
