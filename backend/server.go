@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Znman/go-pow/backend/core"
+	"github.com/Znman/go-pow/backend/handlers"
 )
 
 var blockchain = core.NewBlockChain()
@@ -93,7 +94,7 @@ func main() {
 	mux.HandleFunc("/chain", getChain)
 	mux.HandleFunc("/transactions/new", addTransaction)
 	mux.HandleFunc("/mine", mineBlock)
-
+	mux.HandleFunc("/mine/stream", handlers.MineConsensusStreamHandler(blockchain))
 	handler := enableCORS(mux)
 
 	log.Println("Server running on http://localhost:8000")

@@ -1,17 +1,71 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import BlockchainGraph from './BlockchainGraph.vue'
-import BlockchainStats from './BlockchainStats.vue'
-import ConsensusSection from './ConsensusSection.vue'
+
 
 interface Transaction {
-  sender: string
-  recipient: string
-  amount: number
+  sender: string    // Changed from Sender to match backend JSON
+  recipient: string // Changed from Recipient to match backend JSON
+  amount: number    // Changed from Amount to match backend JSON
   message: string
 }
 
+interface ConsensusProgress {
+  attempt: number,
+  proof: number,
+  hash: string,
+  found: boolean,
+  blockIndex: number,
+  message: string,
+}
+
+interface NodeState {
+  id: number,
+  eventSource: EventSource | null,
+  progress: ConsensusProgress | null,
+}
+
+
+
+const consensusInProgress = ref(false)
+const consensusProgress = ref<ConsensusProgress | null>(null)
+let eventSource: EventSource | null = null
+
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+const nodes = ref<NodeState[]>([
+  { id: 0, eventSource: null, progress: null },
+  { id: 1, eventSource: null, progress: null },
+  { id: 2, eventSource: null, progress: null },
+]);
+const winnerNode = ref<number | null>(null);
+const competitionActive = ref(false);
+// const startConsensusStream = () => {
+//   consensusInProgress.value = true
+//   consensusProgress.value = null
+
+//   eventSource = new EventSource('http://localhost:8000/mine/stream')
+//   eventSource.onmessage = (e: MessageEvent) => {
+//     const data = JSON.parse(e.data)
+//     consensusProgress.value = data
+//     if (data.found) {
+//       setTimeout(() => {
+//         consensusInProgress.value = false
+//         eventSource?.close()
+//         fetchChain()
+//       }, 1200)
+//     }
+//   }
+//   eventSource.onerror = () => {
+//     consensusInProgress.value = false
+//     eventSource?.close()
+//   }
+// }
+
+onUnmounted(() => {
+  if (eventSource) eventSource.close()
+})
 interface Block {
   index: number
   timestamp: number
@@ -26,19 +80,11 @@ interface BlockchainData {
   currentTransactions: Transaction[]
 }
 
-// State Management
 const blockchain = ref<BlockchainData | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const miningInProgress = ref(false)
 const currentTime = ref(new Date().toISOString())
-const selectedBlock = ref<Block | null>(null)
-const showingConsensus = ref(false)
-const refreshInterval = ref<number | null>(null)
-
-// Constants for consensus visualization
-const MINING_DIFFICULTY = 4
-const TARGET_PREFIX = '0'.repeat(MINING_DIFFICULTY)
 
 // Fetch blockchain data
 const fetchChain = async () => {
@@ -49,46 +95,11 @@ const fetchChain = async () => {
     const response = await axios.get<BlockchainData>('http://localhost:8000/chain')
     blockchain.value = response.data
     currentTime.value = new Date().toISOString()
-
-    // Update selected block if it exists in the new chain data
-    if (selectedBlock.value && blockchain.value) {
-      const updatedBlock = blockchain.value.chain.find(
-        block => block.index === selectedBlock.value?.index
-      )
-      if (updatedBlock) {
-        selectedBlock.value = updatedBlock
-      }
-    }
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Failed to load blockchain'
     console.error('Error loading blockchain:', err)
   } finally {
     loading.value = false
-  }
-}
-
-// Consensus visualization controls
-const startConsensusVisualization = (block: Block) => {
-  if (miningInProgress.value) return
-
-  // Create a deep copy of the block to prevent reference issues
-  selectedBlock.value = JSON.parse(JSON.stringify(block))
-  showingConsensus.value = true
-
-  // Pause auto-refresh while showing consensus
-  if (refreshInterval.value) {
-    clearInterval(refreshInterval.value)
-    refreshInterval.value = null
-  }
-}
-
-const stopConsensusVisualization = () => {
-  showingConsensus.value = false
-  selectedBlock.value = null
-
-  // Restart auto-refresh if it was previously running
-  if (!refreshInterval.value) {
-    refreshInterval.value = window.setInterval(fetchChain, 30000)
   }
 }
 
@@ -98,34 +109,15 @@ const mineBlock = async () => {
 
   miningInProgress.value = true
   error.value = null
-  showingConsensus.value = true
 
   try {
-    // Create temporary block for visualization
-    if (blockchain.value && blockchain.value.chain.length > 0) {
-      const lastBlock = blockchain.value.chain[blockchain.value.chain.length - 1]
-      selectedBlock.value = {
-        index: lastBlock.index + 1,
-        timestamp: Math.floor(Date.now() / 1000),
-        transactions: blockchain.value.currentTransactions,
-        proof: 0,
-        previousHash: lastBlock.hash,
-        hash: ''
-      }
-    }
-
-    const startTime = Date.now()
     await axios.post('http://localhost:8000/mine')
-    const miningTime = Date.now() - startTime
-    console.log(`Block mined successfully in ${miningTime}ms`)
-
-    await fetchChain()
+    await fetchChain() // Refresh the chain after mining
   } catch (err: any) {
     error.value = err.response?.data?.message || 'Mining failed'
     console.error('Error mining block:', err)
   } finally {
     miningInProgress.value = false
-    // Don't automatically hide consensus visualization after mining
   }
 }
 
@@ -134,21 +126,52 @@ const formatTimestamp = (timestamp: number): string => {
   return new Date(timestamp * 1000).toLocaleString()
 }
 
-// Format hash for display
-const formatHash = (hash: string): string => {
-  return hash.length > 16
-    ? `${hash.substring(0, 8)}...${hash.substring(hash.length - 8)}`
-    : hash
+// Auto refresh setup
+const refreshInterval = ref<number | null>(null)
+
+function startCompetition() {
+  winnerNode.value = null;
+  competitionActive.value = true;
+  nodes.value.forEach((node, idx) => {
+    // Clean up any previous EventSource
+    if (node.eventSource) {
+      node.eventSource.close();
+    }
+    node.progress = null;
+    // Each node opens its own SSE connection (simulate three independent miners)
+    const es = new EventSource(`${apiUrl}/mine/stream`);
+    node.eventSource = es;
+
+    es.onmessage = (event: MessageEvent) => {
+      const progress: ConsensusProgress = JSON.parse(event.data);
+      node.progress = progress;
+      // If this node finds the block, declare as winner
+      if (progress.found && winnerNode.value === null) {
+        winnerNode.value = idx;
+        competitionActive.value = false;
+        // Stop the mining for the other nodes
+        nodes.value.forEach((otherNode, otherIdx) => {
+          if (otherNode.eventSource && otherIdx !== idx) {
+            otherNode.eventSource.close();
+          }
+        });
+      }
+    };
+
+    es.onerror = () => {
+      es.close();
+      node.eventSource = null;
+      node.progress = node.progress || {
+        attempt: 0,
+        proof: 0,
+        hash: '',
+        found: false,
+        blockIndex: 0,
+        message: 'Connection error',
+      };
+    };
+  });
 }
-
-// Watch for mining state changes
-watch(miningInProgress, (newValue) => {
-  if (!newValue && !selectedBlock.value) {
-    showingConsensus.value = false
-  }
-})
-
-// Lifecycle hooks
 onMounted(() => {
   fetchChain()
   refreshInterval.value = window.setInterval(fetchChain, 30000)
@@ -170,10 +193,9 @@ onUnmounted(() => {
           <p class="subtitle">Last updated: {{ new Date(currentTime).toLocaleString() }}</p>
         </div>
         <div class="actions">
-          <button @click="mineBlock" :disabled="miningInProgress" class="mine-button"
-            :class="{ 'mining': miningInProgress }">
+          <button @click="mineBlock" :disabled="miningInProgress" class="mine-button">
             <span class="button-icon">⛏️</span>
-            {{ miningInProgress ? 'Mining in Progress...' : 'Mine New Block' }}
+            {{ miningInProgress ? 'Mining...' : 'Mine New Block' }}
           </button>
           <button @click="fetchChain" :disabled="loading" class="refresh-button">
             <span class="button-icon">🔄</span>
@@ -181,29 +203,82 @@ onUnmounted(() => {
           </button>
         </div>
       </div>
+      <div class="consensus-section">
+        <h2 class="section-title">Consensus Competition (Three Nodes)</h2>
+        <div class="section-desc">
+          <span>
+            Watch three nodes compete to mine the next block! The first one to find a valid proof wins and adds the block
+            to the chain.
+          </span>
+        </div>
+        <div class="competition-controls">
+          <button class="mine-btn" :disabled="competitionActive" @click="startCompetition">
+            Start Competition
+          </button>
+          <span v-if="winnerNode !== null" class="winner-msg">
+            🏆 Node {{ winnerNode + 1 }} wins! Block added to chain.
+          </span>
+        </div>
+        <div class="competition-nodes">
+          <div v-for="(node, idx) in nodes" :key="node.id" :class="['node-card', { winner: winnerNode === idx }]">
+            <div class="node-header">
+              <span class="node-title">Node {{ idx + 1 }}</span>
+              <span v-if="winnerNode === idx" class="node-crown">🏆</span>
+            </div>
+            <div class="node-body">
+              <template v-if="node.progress">
+                <div class="node-row">
+                  <span>Attempt:</span>
+                  <span class="node-num">{{ node.progress.attempt }}</span>
+                </div>
+                <div class="node-row">
+                  <span>Proof:</span>
+                  <span class="node-num">{{ node.progress.proof }}</span>
+                </div>
+                <div class="node-row">
+                  <span>Hash:</span>
+                  <span class="node-hash">{{ node.progress.hash }}</span>
+                </div>
+                <div class="node-row">
+                  <span>Status:</span>
+                  <span :class="['node-status', { found: node.progress.found }]">
+                    {{ node.progress.message }}
+                  </span>
+                </div>
+              </template>
+              <template v-else>
+                <div class="node-row node-waiting">Waiting for mining...</div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- <div class="actions">
+        <button @click="startConsensusStream" :disabled="consensusInProgress" class="mine-button">
+          <span class="button-icon">⛏️</span>
+          {{ consensusInProgress ? 'Mining (Consensus in Progress)...' : 'Mine With Consensus Stream' }}
+        </button>
+      </div> -->
+      <!-- Consensus Progress Section -->
+      <!-- <div v-if="consensusInProgress" class="consensus-progress">
+        <h3>Consensus Progress (Proof of Work)</h3>
+        <div v-if="consensusProgress">
+          <p><b>Block:</b> #{{ consensusProgress.blockIndex }}</p>
+          <p><b>Attempt:</b> {{ consensusProgress.attempt }}</p>
+          <p><b>Proof:</b> {{ consensusProgress.proof }}</p>
+          <p><b>Hash:</b> {{ consensusProgress.hash }}</p>
+          <p :class="{ found: consensusProgress.found }">{{ consensusProgress.message }}</p>
+        </div>
+        <div v-else>
+          <em>Starting consensus process...</em>
+        </div>
+      </div> -->
     </header>
 
     <!-- Error Message -->
     <div v-if="error" class="error-message">
       {{ error }}
     </div>
-
-    <!-- Consensus Section -->
-    <div v-if="showingConsensus" class="consensus-container">
-      <div class="consensus-header">
-        <h3>
-          Consensus Process
-          {{ selectedBlock ? `for Block #${selectedBlock.index}` : '' }}
-        </h3>
-        <button v-if="!miningInProgress" class="close-button" @click="stopConsensusVisualization"
-          title="Close consensus view">
-          ✕
-        </button>
-      </div>
-      <ConsensusSection v-if="showingConsensus" :block="selectedBlock" :isActive="showingConsensus" :difficulty="4"
-        :targetPrefix="'0000'" @close="stopConsensusVisualization" />
-    </div>
-
     <!-- Stats Section -->
     <BlockchainStats :blockchain="blockchain" />
 
@@ -213,61 +288,33 @@ onUnmounted(() => {
     <!-- Blockchain Data -->
     <div class="blockchain-data" v-if="blockchain">
       <div class="blocks-container">
-        <div v-for="block in [...blockchain.chain].reverse()" :key="block.index" class="block-card"
-          :class="{ 'selected': selectedBlock?.index === block.index }">
+        <div v-for="block in [...blockchain.chain].reverse()" :key="block.index" class="block-card">
           <div class="block-header">
             <h3>Block #{{ block.index }}</h3>
-            <div class="block-actions">
-              <button v-if="!miningInProgress && (!showingConsensus || selectedBlock?.index !== block.index)"
-                @click="startConsensusVisualization(block)" class="consensus-button">
-                <span class="button-icon">🔍</span>
-                View Consensus
-              </button>
-              <button v-else-if="showingConsensus && selectedBlock?.index === block.index"
-                @click="stopConsensusVisualization" class="consensus-button active">
-                <span class="button-icon">✕</span>
-                Hide Consensus
-              </button>
-              <span class="timestamp">{{ formatTimestamp(block.timestamp) }}</span>
-            </div>
+            <span class="timestamp">{{ formatTimestamp(block.timestamp) }}</span>
           </div>
-
           <div class="block-details">
             <div class="detail-item">
               <span class="label">Hash:</span>
-              <span class="value hash" :title="block.hash">
-                {{ formatHash(block.hash) }}
-              </span>
+              <span class="value hash">{{ block.hash }}</span>
             </div>
             <div class="detail-item">
               <span class="label">Previous Hash:</span>
-              <span class="value hash" :title="block.previousHash">
-                {{ formatHash(block.previousHash) }}
-              </span>
+              <span class="value hash">{{ block.previousHash }}</span>
             </div>
             <div class="detail-item">
               <span class="label">Proof:</span>
               <span class="value">{{ block.proof }}</span>
             </div>
           </div>
-
           <div class="transactions">
-            <h4>
-              Transactions
-              <span v-if="block.transactions.length" class="transaction-count">
-                ({{ block.transactions.length }})
-              </span>
-            </h4>
+            <h4>Transactions</h4>
             <div v-if="block.transactions && block.transactions.length > 0" class="transactions-list">
               <div v-for="(tx, index) in block.transactions" :key="index" class="transaction">
                 <div class="transaction-main">
-                  <span class="sender" :title="tx.sender">
-                    {{ formatHash(tx.sender) }}
-                  </span>
+                  <span class="sender">{{ tx.sender }}</span>
                   <span class="arrow">→</span>
-                  <span class="recipient" :title="tx.recipient">
-                    {{ formatHash(tx.recipient) }}
-                  </span>
+                  <span class="recipient">{{ tx.recipient }}</span>
                   <span class="amount">{{ tx.amount }} coins</span>
                 </div>
                 <div v-if="tx.message" class="transaction-message">
@@ -282,6 +329,7 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -292,12 +340,70 @@ onUnmounted(() => {
   padding: 20px;
 }
 
+.consensus-section {
+  margin: 2em 0 2em 0;
+  padding: 1.5em;
+  background: #f8faff;
+  border-radius: 16px;
+  border: 1px solid #bde0fe;
+  box-shadow: 0 2px 12px #bde0fe33;
+}
+
+.section-title {
+  font-size: 1.4em;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.5em;
+}
+
+.section-desc {
+  color: #64748b;
+  margin-bottom: 1em;
+}
+
+.competition-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5em;
+  margin-bottom: 1.5em;
+}
+
+.mine-btn {
+  padding: 0.6em 1.2em;
+  background: linear-gradient(90deg, #38bdf8 40%, #60a5fa 100%);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 1em;
+  cursor: pointer;
+  box-shadow: 0 2px 8px #38bdf833;
+  transition: background 0.25s;
+}
+
+.mine-btn:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.winner-msg {
+  font-size: 1.07em;
+  color: #059669;
+  font-weight: 600;
+  margin-left: 1em;
+  background: #d1fae5;
+  border-radius: 6px;
+  padding: 0.25em 1em;
+}
+
+.competition-nodes {}
+
 .main-header {
   background-color: #f8f9fa;
   padding: 20px;
   border-radius: 8px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .header-content {
@@ -309,7 +415,6 @@ onUnmounted(() => {
 .title-section h1 {
   margin: 0;
   color: #2c3e50;
-  font-size: 1.8em;
 }
 
 .subtitle {
@@ -324,8 +429,7 @@ onUnmounted(() => {
 }
 
 .mine-button,
-.refresh-button,
-.consensus-button {
+.refresh-button {
   padding: 10px 20px;
   border: none;
   border-radius: 4px;
@@ -342,78 +446,9 @@ onUnmounted(() => {
   color: white;
 }
 
-.mine-button:hover {
-  background-color: #45a049;
-}
-
-.mine-button.mining {
-  animation: pulse 1.5s infinite;
-}
-
 .refresh-button {
   background-color: #2196F3;
   color: white;
-}
-
-.refresh-button:hover {
-  background-color: #1e88e5;
-}
-
-.consensus-button {
-  background-color: #6c757d;
-  color: white;
-  padding: 6px 12px;
-  font-size: 0.9em;
-}
-
-.consensus-button:hover {
-  background-color: #5a6268;
-}
-
-.consensus-button.active {
-  background-color: #dc3545;
-}
-
-.consensus-button.active:hover {
-  background-color: #c82333;
-}
-
-.consensus-container {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.consensus-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
-}
-
-.consensus-header h3 {
-  margin: 0;
-  color: #2c3e50;
-}
-
-.close-button {
-  background: none;
-  border: none;
-  color: #666;
-  font-size: 20px;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.close-button:hover {
-  background: #f8f9fa;
-  color: #dc3545;
 }
 
 button:disabled {
@@ -427,16 +462,11 @@ button:disabled {
   padding: 20px;
   margin-bottom: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  transition: transform 0.2s ease;
 }
 
 .block-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.block-card.selected {
-  border: 2px solid #4CAF50;
 }
 
 .block-header {
@@ -448,25 +478,11 @@ button:disabled {
   border-bottom: 1px solid #eee;
 }
 
-.block-header h3 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 1.2em;
-}
-
-.block-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
 .block-details {
   margin-bottom: 15px;
 }
 
 .detail-item {
-  display: flex;
-  align-items: center;
   margin-bottom: 10px;
 }
 
@@ -474,7 +490,6 @@ button:disabled {
   color: #666;
   font-weight: bold;
   margin-right: 8px;
-  min-width: 120px;
 }
 
 .hash {
@@ -484,12 +499,6 @@ button:disabled {
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 0.9em;
-  cursor: help;
-}
-
-.timestamp {
-  color: #666;
-  font-size: 0.9em;
 }
 
 .transactions {
@@ -498,34 +507,14 @@ button:disabled {
   border-top: 1px solid #eee;
 }
 
-.transactions h4 {
-  margin: 0 0 10px 0;
-  color: #2c3e50;
-}
-
-.transaction-count {
-  color: #666;
-  font-size: 0.9em;
-  font-weight: normal;
-}
-
-.transactions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .transaction {
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  padding: 12px;
-}
-
-.transaction-main {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  margin-bottom: 8px;
 }
 
 .sender,
@@ -534,8 +523,6 @@ button:disabled {
   padding: 2px 6px;
   background-color: #e9ecef;
   border-radius: 3px;
-  font-size: 0.9em;
-  cursor: help;
 }
 
 .arrow {
@@ -546,16 +533,6 @@ button:disabled {
   margin-left: auto;
   font-weight: bold;
   color: #4CAF50;
-}
-
-.transaction-message {
-  margin-top: 8px;
-  padding: 8px;
-  background: #fff;
-  border-radius: 4px;
-  color: #666;
-  font-style: italic;
-  border-left: 3px solid #4CAF50;
 }
 
 .no-transactions {
@@ -574,55 +551,35 @@ button:disabled {
   margin-bottom: 20px;
 }
 
-@keyframes pulse {
-  0% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.7;
-  }
-
-  100% {
-    opacity: 1;
-  }
+.button-icon {
+  font-size: 16px;
 }
 
-@media (max-width: 768px) {
-  .header-content {
-    flex-direction: column;
-    gap: 16px;
-  }
+.transaction {
+  flex-direction: column;
+  padding: 15px;
+}
 
-  .actions {
-    width: 100%;
-    justify-content: stretch;
-  }
+.transaction-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
 
-  .mine-button,
-  .refresh-button {
-    flex: 1;
-  }
+.transaction-message {
+  margin-top: 8px;
+  padding: 8px;
+  background: #fff;
+  border-radius: 4px;
+  color: #666;
+  font-style: italic;
+  border-left: 3px solid #4CAF50;
+}
 
-  .block-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .block-actions {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .transaction-main {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .amount {
-    margin-left: 0;
-    margin-top: 8px;
-  }
+.blockchain-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
 }
 </style>

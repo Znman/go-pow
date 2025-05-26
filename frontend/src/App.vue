@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
+import ConsensusVisualizer from './components/ConsensusVisualizer.vue'
 </script>
 
 <template>
