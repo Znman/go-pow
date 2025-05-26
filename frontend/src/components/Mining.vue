@@ -8,14 +8,24 @@ interface Transaction {
   Amount: number
 }
 
+
+interface MiningStats {
+  attempts: number
+  duration: number
+  difficulty: number
+}
+
 interface Block {
   index: number
   timestamp: number
-  transactions: Transaction[] | null
+  transactions: Transaction[]
   proof: number
   previousHash: string
   hash: string
+  miningStats: MiningStats
 }
+
+
 
 interface MiningResponse {
   message: string
@@ -186,6 +196,30 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    <div v-if="lastMinedBlock?.miningStats" class="mining-stats-section">
+      <h3>Mining Statistics</h3>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <label>Attempts Made:</label>
+          <span>{{ formatNumber(lastMinedBlock.miningStats.attempts) }}</span>
+        </div>
+        <div class="stat-item">
+          <label>Mining Duration:</label>
+          <span>{{ lastMinedBlock.miningStats.duration.toFixed(3) }} seconds</span>
+        </div>
+        <div class="stat-item">
+          <label>Difficulty:</label>
+          <span>{{ lastMinedBlock.miningStats.difficulty }} (requires {{ '0'.repeat(lastMinedBlock.miningStats.difficulty)
+          }} prefix)</span>
+        </div>
+        <div class="stat-item">
+          <label>Hash Rate:</label>
+          <span>{{ formatNumber(Math.floor(lastMinedBlock.miningStats.attempts / lastMinedBlock.miningStats.duration)) }}
+            hashes/second</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -342,6 +376,41 @@ onMounted(async () => {
 .address .label {
   color: #666;
   font-size: 0.9em;
+}
+
+.mining-stats-section {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.stat-item {
+  background-color: #f8f9fa;
+  padding: 12px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-item label {
+  font-weight: bold;
+  color: #666;
+  font-size: 0.9em;
+}
+
+.stat-item span {
+  font-family: monospace;
+  font-size: 1.1em;
 }
 
 .arrow {

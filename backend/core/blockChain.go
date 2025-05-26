@@ -13,6 +13,14 @@ const MINING_DIFFICULTY = 4
 type Blockchain struct {
 	Chain               []Block       `json:"chain"`
 	CurrentTransactions []Transaction `json:"currentTransactions"`
+	MiningStats         MiningStats   `json:"miningStats,omitempty"`
+}
+
+type MiningStats struct {
+	Attempts   int64   `json:"attempts"`
+	Duration   float64 `json:"duration"`
+	Difficulty int     `json:"difficulty"`
+	FinalProof int64   `json:"finalProof"`
 }
 
 func NewBlockChain() *Blockchain {
@@ -51,10 +59,11 @@ func (bc *Blockchain) AddTransaction(sender, recipient string, amount float64, m
 	return transaction
 }
 
+// Modify the MineBlock function to include mining statistics
 func (bc *Blockchain) MineBlock() Block {
+	startTime := time.Now()
 	lastBlock := bc.GetLastBlock()
 
-	// Create a copy of current transactions
 	transactions := make([]Transaction, len(bc.CurrentTransactions))
 	copy(transactions, bc.CurrentTransactions)
 
@@ -66,26 +75,37 @@ func (bc *Blockchain) MineBlock() Block {
 		Proof:        0,
 	}
 
-	// Find the proof
-	proof := bc.ProofOfWork(lastBlock.Proof)
+	// Find the proof and track attempts
+	var attempts int64
+	proof := bc.ProofOfWork(lastBlock.Proof, &attempts)
+	duration := time.Since(startTime).Seconds()
+
 	newBlock.Proof = proof
 	newBlock.Hash = newBlock.CalculateHash()
+	newBlock.MiningStats = MiningStats{
+		Attempts:   attempts,
+		Duration:   duration,
+		Difficulty: MINING_DIFFICULTY,
+		FinalProof: proof,
+	}
 
-	// Add block to chain and clear current transactions
 	bc.Chain = append(bc.Chain, newBlock)
 	bc.CurrentTransactions = make([]Transaction, 0)
 
 	return newBlock
 }
 
-func (bc *Blockchain) ProofOfWork(lastProof int64) int64 {
+// Modify ProofOfWork to track attempts
+func (bc *Blockchain) ProofOfWork(lastProof int64, attempts *int64) int64 {
 	proof := int64(0)
+	*attempts = 0
+
 	for !bc.ValidProof(lastProof, proof) {
 		proof++
+		*attempts++
 	}
 	return proof
 }
-
 func (bc *Blockchain) ValidProof(lastProof, proof int64) bool {
 	guess := fmt.Sprintf("%d%d", lastProof, proof)
 	hash := sha256.Sum256([]byte(guess))
